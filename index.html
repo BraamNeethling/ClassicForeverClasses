@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Forever Guild Charter</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Source+Sans+3:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#14141c; --surface:#1d1e29; --surface-2:#262735; --surface-3:#2f3142;
+    --line:#3a3b4e; --line-soft:#2a2b3a;
+    --text:#ece7d8; --text-dim:#a6a4b8; --text-faint:#716f85;
+    --accent:#d7a63b; --accent-strong:#f0c565; --accent-soft:rgba(215,166,59,.16);
+    --r1:#4a4c5f; --r2:#4f7a6c; --r3:#c98a2e; --r4:#e2703a;
+    --shadow:0 16px 36px -18px rgba(0,0,0,.6);
+    --font-display:'Marcellus', Georgia, 'Times New Roman', serif;
+    --font-body:'Source Sans 3', 'Segoe UI', Helvetica, Arial, sans-serif;
+    --font-mono:'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --bg:#f4efe1; --surface:#fffdf8; --surface-2:#efe8d4; --surface-3:#e5dcc1;
+      --line:#d6c9a2; --line-soft:#e4d9bb;
+      --text:#241f14; --text-dim:#5c5440; --text-faint:#8c826a;
+      --accent:#9a6c1c; --accent-strong:#7d5714; --accent-soft:rgba(154,108,28,.12);
+      --r1:#cabf9d; --r2:#5c8873; --r3:#b3791f; --r4:#c1591f;
+      --shadow:0 16px 36px -20px rgba(90,70,30,.28);
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#f4efe1; --surface:#fffdf8; --surface-2:#efe8d4; --surface-3:#e5dcc1;
+    --line:#d6c9a2; --line-soft:#e4d9bb;
+    --text:#241f14; --text-dim:#5c5440; --text-faint:#8c826a;
+    --accent:#9a6c1c; --accent-strong:#7d5714; --accent-soft:rgba(154,108,28,.12);
+    --r1:#cabf9d; --r2:#5c8873; --r3:#b3791f; --r4:#c1591f;
+    --shadow:0 16px 36px -20px rgba(90,70,30,.28);
+  }
+  *{box-sizing:border-box;}
+  @media (prefers-reduced-motion: reduce){ *{transition:none!important; animation:none!important;} }
+  html{background:var(--bg);}
+  body{margin:0; background:var(--bg); color:var(--text); font-family:var(--font-body); font-size:16px; line-height:1.5; -webkit-font-smoothing:antialiased;}
+  #root{max-width:900px; margin:0 auto; padding:40px 20px 80px;}
+  h1,h2{font-family:var(--font-display); text-wrap:balance; margin:0; color:var(--text); font-weight:400;}
+  a{color:var(--accent);}
+  .crest{display:block; margin:0 auto 14px;}
+  .charter-head{text-align:center; margin-bottom:32px;}
+  .eyebrow{font-family:var(--font-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin:0 0 10px;}
+  .charter-head h1{font-size:clamp(28px,5vw,42px); letter-spacing:.01em;}
+  .lede{color:var(--text-dim); max-width:52ch; margin:14px auto 0; font-size:15px;}
+  .tabbar{display:flex; gap:4px; background:var(--surface-2); border:1px solid var(--line); border-radius:999px; padding:4px; max-width:460px; margin:0 auto 28px;}
+  .tab-btn{flex:1; border:none; background:transparent; color:var(--text-dim); font-family:var(--font-body); font-size:14px; font-weight:600; padding:10px 14px; border-radius:999px; cursor:pointer;}
+  .tab-btn.active{background:var(--accent); color:#1a1508;}
+  .tab-btn:focus-visible{outline:2px solid var(--accent-strong); outline-offset:2px;}
+  .panel{background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:clamp(18px,4vw,36px); box-shadow:var(--shadow);}
+  .field{display:flex; flex-direction:column; gap:6px; margin-bottom:22px;}
+  .field span{font-size:13px; font-weight:600; color:var(--text-dim);}
+  .field input[type=text], .field select, .field textarea{
+    background:var(--surface-2); border:1px solid var(--line); color:var(--text);
+    border-radius:8px; padding:10px 12px; font-family:var(--font-body); font-size:15px; width:100%;
+  }
+  .field textarea{resize:vertical; min-height:72px;}
+  .field input:focus-visible, .field select:focus-visible, .field textarea:focus-visible{outline:2px solid var(--accent); outline-offset:1px;}
+  .two-col{display:grid; grid-template-columns:1fr 1fr; gap:16px 20px;}
+  @media (max-width:560px){ .two-col{grid-template-columns:1fr;} }
+  .rate-section{margin:30px 0;}
+  .rate-section h2, .demand-block h2, .roster-block h2{font-size:19px; margin-bottom:8px;}
+  .legend{display:flex; flex-wrap:wrap; gap:12px 18px; font-family:var(--font-mono); font-size:11px; color:var(--text-faint); margin-bottom:14px; letter-spacing:.02em;}
+  .legend-item{display:inline-flex; align-items:center; gap:6px;}
+  .swatch{width:9px; height:9px; border-radius:2px; display:inline-block;}
+  .swatch.r1{background:var(--r1);} .swatch.r2{background:var(--r2);} .swatch.r3{background:var(--r3);} .swatch.r4{background:var(--r4);}
+  .rows{display:flex; flex-direction:column; border-top:1px solid var(--line-soft);}
+  .row{display:flex; align-items:center; justify-content:space-between; gap:14px; padding:10px 2px; border-bottom:1px solid var(--line-soft); flex-wrap:wrap;}
+  .row-label{display:flex; align-items:center; gap:9px; font-size:14.5px; min-width:120px;}
+  .dot{width:10px; height:10px; border-radius:50%; display:inline-block; box-shadow:0 0 0 1px rgba(0,0,0,.35) inset;}
+  .row-btns{display:grid; grid-template-columns:repeat(4,minmax(74px,1fr)); gap:6px;}
+  @media (max-width:640px){ .row{flex-direction:column; align-items:stretch;} .row-btns{grid-template-columns:repeat(2,1fr);} }
+  .rate-btn{
+    font-family:var(--font-body); font-size:12.5px; font-weight:600; color:var(--text-dim);
+    background:var(--surface-2); border:1px solid var(--line); border-radius:7px; padding:8px 6px; cursor:pointer;
+  }
+  .rate-btn:hover{border-color:var(--accent);}
+  .rate-btn:focus-visible{outline:2px solid var(--accent); outline-offset:1px;}
+  .rate-btn[data-value="1"].active{background:var(--r1); color:var(--text); border-color:var(--r1);}
+  .rate-btn[data-value="2"].active{background:var(--r2); color:#fff; border-color:var(--r2);}
+  .rate-btn[data-value="3"].active{background:var(--r3); color:#1a1508; border-color:var(--r3);}
+  .rate-btn[data-value="4"].active{background:var(--r4); color:#1a1508; border-color:var(--r4); box-shadow:0 0 0 1px var(--r4);}
+  .save-row{display:flex; align-items:center; gap:14px; margin-top:8px; flex-wrap:wrap;}
+  .btn-primary{
+    background:var(--accent); color:#1a1508; border:none; border-radius:8px; font-family:var(--font-body);
+    font-weight:700; font-size:15px; padding:12px 22px; cursor:pointer;
+  }
+  .btn-primary:hover{background:var(--accent-strong);}
+  .btn-primary:disabled{opacity:.6; cursor:default;}
+  .btn-primary:focus-visible{outline:2px solid var(--text); outline-offset:2px;}
+  .btn-ghost{background:transparent; color:var(--text-dim); border:1px solid var(--line); border-radius:8px; font-family:var(--font-body); font-size:13px; font-weight:600; padding:8px 14px; cursor:pointer;}
+  .btn-ghost:hover{border-color:var(--accent); color:var(--accent);}
+  .save-status{font-family:var(--font-mono); font-size:12.5px; color:var(--text-faint);}
+  .board-head{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:20px; flex-wrap:wrap;}
+  .board-head .save-status{font-size:12px;}
+  .stat-tiles{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:34px;}
+  @media (max-width:640px){ .stat-tiles{grid-template-columns:repeat(2,1fr);} }
+  .tile{background:var(--surface-2); border:1px solid var(--line); border-radius:12px; padding:16px 14px; display:flex; flex-direction:column; gap:4px;}
+  .tile-value{font-family:var(--font-display); font-size:26px; color:var(--accent); font-variant-numeric:tabular-nums;}
+  .tile-label{font-size:11.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.06em;}
+  .demand-block{margin-bottom:36px;}
+  .bars{display:flex; flex-direction:column; gap:8px;}
+  .bar-row{display:grid; grid-template-columns:130px 1fr 34px; align-items:center; gap:12px;}
+  @media (max-width:560px){ .bar-row{grid-template-columns:96px 1fr 30px; gap:8px;} }
+  .bar-label{display:flex; align-items:center; gap:8px; font-size:13.5px;}
+  .bar-track{position:relative; height:16px; background:var(--surface-2); border:1px solid var(--line-soft); border-radius:5px; overflow:hidden; display:flex;}
+  .seg{height:100%; display:inline-block;}
+  .seg.r1{background:var(--r1);} .seg.r2{background:var(--r2);} .seg.r3{background:var(--r3);} .seg.r4{background:var(--r4);}
+  .bar-total{font-family:var(--font-mono); font-size:12.5px; color:var(--text-faint); text-align:right; font-variant-numeric:tabular-nums;}
+  .empty{color:var(--text-faint); font-size:14px; font-style:italic; padding:10px 0;}
+  .roster-block h2 .hint{font-family:var(--font-body); font-size:12.5px; font-weight:400; color:var(--text-faint);}
+  .table-wrap{overflow-x:auto; border:1px solid var(--line); border-radius:10px;}
+  table{border-collapse:collapse; width:100%; min-width:640px; font-size:13.5px;}
+  th,td{text-align:left; padding:10px 12px; border-bottom:1px solid var(--line-soft); vertical-align:top;}
+  th{font-family:var(--font-mono); font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-faint); background:var(--surface-2);}
+  tr:last-child td{border-bottom:none;}
+  .badge{display:inline-block; background:var(--accent-soft); color:var(--accent); border:1px solid var(--accent); border-radius:5px; padding:2px 7px; font-size:11.5px; margin:0 4px 4px 0; font-family:var(--font-mono);}
+  .notes-cell{max-width:220px; white-space:pre-wrap;}
+  .setup-warning{background:var(--accent-soft); border:1px solid var(--accent); color:var(--accent); border-radius:10px; padding:12px 14px; font-size:13px; margin-bottom:20px; font-family:var(--font-mono);}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+(function(){
+  // ---- 1. Paste your Google Apps Script Web App URL here after deploying it ----
+  var SCRIPT_URL = "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
+
+  var CLASSES = [
+    ["Warrior","#C79C6E"], ["Paladin","#F58CBA"], ["Hunter","#ABD473"], ["Rogue","#FFF569"],
+    ["Priest","#F0EDE4"], ["Shaman","#2E7FE0"], ["Mage","#69CCF0"], ["Warlock","#9482C9"], ["Druid","#FF7D0A"]
+  ];
+  var PROFESSIONS = ["Alchemy","Blacksmithing","Enchanting","Engineering","Herbalism","Leatherworking","Mining","Skinning","Tailoring"];
+  var RATINGS = [[1,"Not really"],[2,"Open to it"],[3,"Interested"],[4,"Really want it"]];
+
+  function esc(s){
+    return String(s==null?"":s).replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+  function configured(){ return SCRIPT_URL.indexOf("PASTE_YOUR") !== 0; }
+
+  function crestSVG(){
+    return '<svg class="crest" width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
+      + '<path d="M20 2 L36 8 V20 C36 29 29 35.5 20 38 C11 35.5 4 29 4 20 V8 Z" stroke="var(--accent)" stroke-width="1.6"/>'
+      + '<path d="M20 9 V31 M11 20 H29" stroke="var(--accent)" stroke-width="1.2" opacity=".8"/>'
+      + '<circle cx="20" cy="20" r="3.4" fill="var(--accent)"/>'
+      + '</svg>';
+  }
+  function legendHTML(){
+    return '<div class="legend">' + RATINGS.map(function(r){
+      return '<span class="legend-item"><i class="swatch r'+r[0]+'"></i>'+r[1]+'</span>';
+    }).join('') + '</div>';
+  }
+  function rowHTML(kind, name, color){
+    var dot = color ? '<span class="dot" style="background:'+color+'"></span>' : '';
+    var btns = RATINGS.map(function(r){
+      return '<button type="button" class="rate-btn" data-kind="'+kind+'" data-name="'+esc(name)+'" data-value="'+r[0]+'">'+r[1]+'</button>';
+    }).join('');
+    return '<div class="row" data-row-kind="'+kind+'" data-row-name="'+esc(name)+'">'
+      + '<span class="row-label">'+dot+esc(name)+'</span>'
+      + '<span class="row-btns">'+btns+'</span>'
+      + '</div>';
+  }
+  function tileHTML(label, value){
+    return '<div class="tile"><span class="tile-value">'+esc(value)+'</span><span class="tile-label">'+esc(label)+'</span></div>';
+  }
+  function statsHTML(s){
+    return '<div class="stat-tiles">'
+      + tileHTML('Total responses', s.total)
+      + tileHTML('Top class', s.topClass)
+      + tileHTML('Top profession', s.topProf)
+      + tileHTML('Alts & notes logged', s.notesCount)
+      + '</div>';
+  }
+  function badgesHTML(list){
+    if(!list.length) return '&#8212;';
+    return list.map(function(n){ return '<span class="badge">'+esc(n)+'</span>'; }).join(' ');
+  }
+  function rosterHTML(roster){
+    if(!roster.length) return '<p class="empty">No responses yet.</p>';
+    var rows = roster.map(function(r){
+      var profText = [r.mainProf, r.secProf].filter(Boolean).join(' / ');
+      return '<tr>'
+        + '<td>'+esc(r.name)+'</td>'
+        + '<td>'+badgesHTML(r.classes)+'</td>'
+        + '<td>'+badgesHTML(r.profs)+'</td>'
+        + '<td>'+esc(profText || '—')+'</td>'
+        + '<td class="notes-cell">'+esc(r.notes || '—')+'</td>'
+        + '</tr>';
+    }).join('');
+    return '<div class="table-wrap"><table><thead><tr><th>Name</th><th>Classes</th><th>Professions</th><th>Main / Sec prof</th><th>Notes</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  }
+  function barsHTML(bars){
+    var max = Math.max.apply(null, bars.map(function(b){ return b.agg[1]+b.agg[2]+b.agg[3]+b.agg[4]; }).concat([1]));
+    return bars.map(function(b){
+      var total = b.agg[1]+b.agg[2]+b.agg[3]+b.agg[4];
+      var dot = b.color ? '<span class="dot" style="background:'+b.color+'"></span>' : '';
+      var segs = [1,2,3,4].map(function(v){
+        var w = max ? (b.agg[v]/max*100) : 0;
+        return b.agg[v] ? '<span class="seg r'+v+'" style="width:'+w+'%"></span>' : '';
+      }).join('');
+      return '<div class="bar-row">'
+        + '<span class="bar-label">'+dot+esc(b.name)+'</span>'
+        + '<span class="bar-track">'+segs+'</span>'
+        + '<span class="bar-total">'+total+'</span>'
+        + '</div>';
+    }).join('');
+  }
+  function computeStats(entries){
+    var classAgg = {}, profAgg = {};
+    CLASSES.forEach(function(c){ classAgg[c[0]] = {1:0,2:0,3:0,4:0,score:0}; });
+    PROFESSIONS.forEach(function(p){ profAgg[p] = {1:0,2:0,3:0,4:0,score:0}; });
+    var roster = [];
+    entries.forEach(function(e){
+      var rowClasses = [], rowProfs = [];
+      CLASSES.forEach(function(c){
+        var v = e.classes && e.classes[c[0]];
+        if(v){ classAgg[c[0]][v]++; classAgg[c[0]].score += v; if(v>=3) rowClasses.push(c[0]); }
+      });
+      PROFESSIONS.forEach(function(p){
+        var v = e.professions && e.professions[p];
+        if(v){ profAgg[p][v]++; profAgg[p].score += v; if(v>=3) rowProfs.push(p); }
+      });
+      if(rowClasses.length || rowProfs.length){
+        roster.push({ name:e.name, classes:rowClasses, profs:rowProfs, mainProf:e.mainProf, secProf:e.secProf, notes:e.notes });
+      }
+    });
+    var classBars = CLASSES.map(function(c){ return {name:c[0], color:c[1], agg:classAgg[c[0]]}; }).sort(function(a,b){ return b.agg.score - a.agg.score; });
+    var profBars = PROFESSIONS.map(function(p){ return {name:p, color:null, agg:profAgg[p]}; }).sort(function(a,b){ return b.agg.score - a.agg.score; });
+    var topClass = classBars.length && classBars[0].agg.score>0 ? classBars[0].name : '—';
+    var topProf = profBars.length && profBars[0].agg.score>0 ? profBars[0].name : '—';
+    var notesCount = entries.filter(function(e){ return e.notes && String(e.notes).trim(); }).length;
+    return { total: entries.length, topClass: topClass, topProf: topProf, notesCount: notesCount, classBars: classBars, profBars: profBars, roster: roster };
+  }
+  function dashboardHTML(entries){
+    if(!configured()){
+      return '<div class="setup-warning">Dashboard not connected yet — paste your Apps Script Web App URL into SCRIPT_URL near the top of this file.</div>';
+    }
+    var stats = computeStats(entries);
+    if(stats.total === 0){
+      return '<p class="empty">No responses yet. Be the first to give your interest.</p>';
+    }
+    return statsHTML(stats)
+      + '<div class="demand-block"><h2>Classes</h2>' + legendHTML() + '<div class="bars">' + barsHTML(stats.classBars) + '</div></div>'
+      + '<div class="demand-block"><h2>Professions</h2>' + legendHTML() + '<div class="bars">' + barsHTML(stats.profBars) + '</div></div>'
+      + '<div class="roster-block"><h2>Who&rsquo;s interested <span class="hint">(rated Interested or higher on something)</span></h2>' + rosterHTML(stats.roster) + '</div>';
+  }
+
+  function renderShell(){
+    var profOptions = '<option value="">Not sure yet</option>' + PROFESSIONS.map(function(p){ return '<option value="'+esc(p)+'">'+esc(p)+'</option>'; }).join('');
+    var classRows = CLASSES.map(function(c){ return rowHTML('class', c[0], c[1]); }).join('');
+    var profRows = PROFESSIONS.map(function(p){ return rowHTML('prof', p, null); }).join('');
+
+    document.getElementById('root').innerHTML = ''
+      + '<header class="charter-head">'
+      +   crestSVG()
+      +   '<p class="eyebrow">World of Warcraft &middot; Forever</p>'
+      +   '<h1>Forever Guild Charter</h1>'
+      +   '<p class="lede">Tell us what you&rsquo;re excited to play. Rate as many classes and professions as you like &mdash; this stays open, so come back and update it anytime plans change.</p>'
+      + '</header>'
+      + '<div class="tabbar" role="tablist">'
+      +   '<button type="button" class="tab-btn active" data-tab="give" role="tab" aria-selected="true">Give your interest</button>'
+      +   '<button type="button" class="tab-btn" data-tab="board" role="tab" aria-selected="false">Guild dashboard</button>'
+      + '</div>'
+      + '<section id="panel-give" class="panel">'
+      +   (configured() ? '' : '<div class="setup-warning">This form isn\'t connected to a spreadsheet yet — paste your Apps Script Web App URL into SCRIPT_URL near the top of this file.</div>')
+      +   '<form id="signup-form">'
+      +     '<label class="field"><span>Your name (Discord or character name)</span><input type="text" id="f-name" placeholder="e.g. Brannor" autocomplete="off" required></label>'
+      +     '<div class="rate-section"><h2>Classes</h2>' + legendHTML() + '<div id="classRows" class="rows">' + classRows + '</div></div>'
+      +     '<div class="rate-section"><h2>Professions</h2>' + legendHTML() + '<div id="profRows" class="rows">' + profRows + '</div></div>'
+      +     '<div class="two-col">'
+      +       '<label class="field"><span>Main profession (if known)</span><select id="f-mainprof">' + profOptions + '</select></label>'
+      +       '<label class="field"><span>Secondary profession (if known)</span><select id="f-secprof">' + profOptions + '</select></label>'
+      +     '</div>'
+      +     '<label class="field"><span>Possible alts &amp; notes</span><textarea id="f-notes" rows="3" placeholder="e.g. Maining Warrior, keeping a Priest alt on standby for healing"></textarea></label>'
+      +     '<div class="save-row"><button type="submit" id="save-btn" class="btn-primary" '+(configured()?'':'disabled')+'>Save my interest</button><span id="save-status" class="save-status" aria-live="polite"></span></div>'
+      +   '</form>'
+      + '</section>'
+      + '<section id="panel-board" class="panel" hidden>'
+      +   '<div class="board-head"><h2 style="font-size:19px;">Live results</h2><button type="button" id="refresh-btn" class="btn-ghost">Refresh</button></div>'
+      +   '<div id="board-content"><p class="empty">Loading…</p></div>'
+      + '</section>';
+  }
+
+  function loadEntries(){
+    if(!configured()) return Promise.resolve([]);
+    return fetch(SCRIPT_URL, { method: 'GET' })
+      .then(function(res){ return res.json(); })
+      .then(function(data){ return data.entries || []; })
+      .catch(function(){ return null; });
+  }
+
+  function saveEntry(entry){
+    return fetch(SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(entry)
+    }).then(function(res){
+      if(!res.ok) throw new Error('bad status');
+      return res.json();
+    });
+  }
+
+  function main(){
+    renderShell();
+
+    var nameInput = document.getElementById('f-name');
+    var mainSel = document.getElementById('f-mainprof');
+    var secSel = document.getElementById('f-secprof');
+    var notesInput = document.getElementById('f-notes');
+    var saveBtn = document.getElementById('save-btn');
+    var statusEl = document.getElementById('save-status');
+    var classRows = document.getElementById('classRows');
+    var profRows = document.getElementById('profRows');
+    var boardContent = document.getElementById('board-content');
+
+    var draft = { id:null, classes:{}, professions:{} };
+    var currentEntries = [];
+
+    function applyActive(container, values){
+      container.querySelectorAll('.row').forEach(function(row){
+        var name = row.getAttribute('data-row-name');
+        var v = values[name];
+        row.querySelectorAll('.rate-btn').forEach(function(btn){
+          btn.classList.toggle('active', !!v && Number(btn.getAttribute('data-value'))===v);
+        });
+      });
+    }
+
+    function onRateClick(e){
+      var btn = e.target.closest ? e.target.closest('.rate-btn') : null;
+      if(!btn) return;
+      var kind = btn.getAttribute('data-kind');
+      var name = btn.getAttribute('data-name');
+      var value = Number(btn.getAttribute('data-value'));
+      var target = kind==='class' ? draft.classes : draft.professions;
+      target[name] = value;
+      var row = btn.closest('.row');
+      row.querySelectorAll('.rate-btn').forEach(function(b){ b.classList.toggle('active', b===btn); });
+    }
+    classRows.addEventListener('click', onRateClick);
+    profRows.addEventListener('click', onRateClick);
+
+    document.querySelectorAll('.tab-btn').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        document.querySelectorAll('.tab-btn').forEach(function(b){
+          b.classList.toggle('active', b===btn);
+          b.setAttribute('aria-selected', b===btn ? 'true' : 'false');
+        });
+        var give = document.getElementById('panel-give');
+        var board = document.getElementById('panel-board');
+        var showBoard = btn.getAttribute('data-tab')==='board';
+        give.hidden = showBoard;
+        board.hidden = !showBoard;
+        if(showBoard) refreshBoard();
+      });
+    });
+
+    function refreshBoard(){
+      boardContent.innerHTML = '<p class="empty">Loading…</p>';
+      loadEntries().then(function(entries){
+        if(entries === null){
+          boardContent.innerHTML = '<p class="empty">Could not load results right now — try Refresh again in a moment.</p>';
+          return;
+        }
+        currentEntries = entries;
+        boardContent.innerHTML = dashboardHTML(entries);
+      });
+    }
+    document.getElementById('refresh-btn').addEventListener('click', refreshBoard);
+
+    document.getElementById('signup-form').addEventListener('submit', function(ev){
+      ev.preventDefault();
+      var name = nameInput.value.trim();
+      if(!name){ statusEl.textContent = 'Enter your name first.'; nameInput.focus(); return; }
+      var entry = {
+        id: draft.id || ((window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ('e'+Date.now()+Math.random().toString(16).slice(2))),
+        name: name,
+        classes: draft.classes,
+        professions: draft.professions,
+        mainProf: mainSel.value,
+        secProf: secSel.value,
+        notes: notesInput.value.trim()
+      };
+      statusEl.textContent = 'Saving…';
+      saveBtn.disabled = true;
+      saveEntry(entry).then(function(){
+        try{ localStorage.setItem('wfSignupId', entry.id); }catch(e){}
+        draft.id = entry.id;
+        statusEl.textContent = 'Saved.';
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Update my interest';
+      }).catch(function(){
+        statusEl.textContent = 'Could not save — check your connection and try again.';
+        saveBtn.disabled = false;
+      });
+    });
+
+    // Prefill from a previous visit, once we know what "previous" looked like.
+    var savedId = null;
+    try{ savedId = localStorage.getItem('wfSignupId'); }catch(e){}
+
+    loadEntries().then(function(entries){
+      if(entries === null) entries = [];
+      currentEntries = entries;
+      if(savedId){
+        var existing = entries.filter(function(e){ return e.id===savedId; })[0];
+        if(existing){
+          draft.id = existing.id;
+          draft.classes = existing.classes || {};
+          draft.professions = existing.professions || {};
+          nameInput.value = existing.name || '';
+          mainSel.value = existing.mainProf || '';
+          secSel.value = existing.secProf || '';
+          notesInput.value = existing.notes || '';
+          applyActive(classRows, draft.classes);
+          applyActive(profRows, draft.professions);
+          saveBtn.textContent = 'Update my interest';
+        }
+      }
+    });
+  }
+
+  main();
+})();
+</script>
+</body>
+</html>
