@@ -138,6 +138,9 @@
   .btn-del{background:transparent; color:var(--r4); border:1px solid var(--r4); border-radius:6px; font-family:var(--font-mono); font-size:11px; padding:4px 8px; cursor:pointer;}
   .btn-del:hover{background:var(--r4); color:#1a1508;}
   .btn-ghost.is-admin{border-color:var(--accent); color:var(--accent);}
+  .link-btn{background:none; border:none; padding:0; font:inherit; color:var(--accent); cursor:pointer; text-decoration:underline; text-decoration-color:transparent; text-underline-offset:2px; transition:text-decoration-color .15s;}
+  .link-btn:hover{text-decoration-color:var(--accent);}
+  .link-btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:2px;}
   .setup-warning{background:var(--accent-soft); border:1px solid var(--accent); color:var(--accent); border-radius:10px; padding:12px 14px; font-size:13px; margin-bottom:20px; font-family:var(--font-mono);}
 </style>
 </head>
@@ -241,7 +244,7 @@
     var rows = roster.map(function(r){
       var profText = [r.mainProf, r.secProf].filter(Boolean).join(' / ');
       return '<tr>'
-        + '<td>'+esc(r.name)+'</td>'
+        + '<td><button type="button" class="link-btn" data-edit-id="'+esc(r.id)+'" title="Edit this entry">'+esc(r.name)+'</button></td>'
         + '<td>'+esc(r.faction || '—')+'</td>'
         + '<td>'+esc(r.serverType || '—')+'</td>'
         + '<td>'+badgesHTML(r.classes)+'</td>'
@@ -319,7 +322,9 @@
     return statsHTML(stats)
       + '<div class="demand-block"><h2>Classes</h2>' + filterLegendHTML('class', activeClassLevels) + '<div class="bars">' + barsHTML(stats.classBars, activeClassLevels) + '</div></div>'
       + '<div class="demand-block"><h2>Professions</h2>' + filterLegendHTML('prof', activeProfLevels) + '<div class="bars">' + barsHTML(stats.profBars, activeProfLevels) + '</div></div>'
-      + '<div class="roster-block"><h2>Who&rsquo;s interested <span class="hint">(rated Interested or higher on something)</span></h2>' + rosterHTML(stats.roster, isAdmin) + '</div>';
+      + '<div class="roster-block"><h2>Who&rsquo;s interested <span class="hint">(rated Interested or higher on something)</span></h2>'
+      +   '<p class="legend-hint">Click a name to load their answers into the form and update them.</p>'
+      +   rosterHTML(stats.roster, isAdmin) + '</div>';
   }
 
   function renderShell(){
@@ -427,6 +432,40 @@
         if(sel) sel.value = '';
         delete draft.specs[className];
       }
+    }
+
+    function prefillForm(entry){
+      draft.id = entry.id;
+      draft.classes = entry.classes || {};
+      draft.professions = entry.professions || {};
+      draft.specs = entry.specs || {};
+      draft.faction = entry.faction || '';
+      draft.serverType = entry.serverType || '';
+      nameInput.value = entry.name || '';
+      mainSel.value = entry.mainProf || '';
+      secSel.value = entry.secProf || '';
+      notesInput.value = entry.notes || '';
+      applyActive(classRows, draft.classes);
+      applyActive(profRows, draft.professions);
+      if(factionBtns){
+        factionBtns.querySelectorAll('.choice-btn').forEach(function(b){
+          b.classList.toggle('active', b.getAttribute('data-faction')===draft.faction);
+        });
+      }
+      if(serverBtns){
+        serverBtns.querySelectorAll('.choice-btn').forEach(function(b){
+          b.classList.toggle('active', b.getAttribute('data-server')===draft.serverType);
+        });
+      }
+      classRows.querySelectorAll('.spec-row').forEach(function(row){ row.hidden = true; });
+      Object.keys(draft.classes).forEach(function(cls){
+        if(draft.classes[cls] >= 2) showSpecRow(cls, true);
+      });
+      Object.keys(draft.specs).forEach(function(cls){
+        var sel = classRows.querySelector('.spec-select[data-spec-for="'+cls+'"]');
+        if(sel) sel.value = draft.specs[cls];
+      });
+      saveBtn.textContent = 'Update my interest';
     }
 
     function onRateClick(e){
@@ -540,6 +579,19 @@
         renderBoard();
         return;
       }
+      var editBtn = e.target.closest ? e.target.closest('.link-btn[data-edit-id]') : null;
+      if(editBtn){
+        var editId = editBtn.getAttribute('data-edit-id');
+        var entry = currentEntries.filter(function(x){ return x.id===editId; })[0];
+        if(entry){
+          prefillForm(entry);
+          var giveTab = document.querySelector('.tab-btn[data-tab="give"]');
+          if(giveTab) giveTab.click();
+          statusEl.textContent = 'Editing ' + (entry.name || 'this entry') + ' — make changes and hit Save.';
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        return;
+      }
       var btn = e.target.closest ? e.target.closest('.btn-del') : null;
       if(!btn) return;
       var id = btn.getAttribute('data-del-id');
@@ -606,38 +658,7 @@
       currentEntries = entries;
       if(savedId){
         var existing = entries.filter(function(e){ return e.id===savedId; })[0];
-        if(existing){
-          draft.id = existing.id;
-          draft.classes = existing.classes || {};
-          draft.professions = existing.professions || {};
-          draft.specs = existing.specs || {};
-          draft.faction = existing.faction || '';
-          draft.serverType = existing.serverType || '';
-          nameInput.value = existing.name || '';
-          mainSel.value = existing.mainProf || '';
-          secSel.value = existing.secProf || '';
-          notesInput.value = existing.notes || '';
-          applyActive(classRows, draft.classes);
-          applyActive(profRows, draft.professions);
-          if(factionBtns){
-            factionBtns.querySelectorAll('.choice-btn').forEach(function(b){
-              b.classList.toggle('active', b.getAttribute('data-faction')===draft.faction);
-            });
-          }
-          if(serverBtns){
-            serverBtns.querySelectorAll('.choice-btn').forEach(function(b){
-              b.classList.toggle('active', b.getAttribute('data-server')===draft.serverType);
-            });
-          }
-          Object.keys(draft.classes).forEach(function(cls){
-            if(draft.classes[cls] >= 2) showSpecRow(cls, true);
-          });
-          Object.keys(draft.specs).forEach(function(cls){
-            var sel = classRows.querySelector('.spec-select[data-spec-for="'+cls+'"]');
-            if(sel) sel.value = draft.specs[cls];
-          });
-          saveBtn.textContent = 'Update my interest';
-        }
+        if(existing) prefillForm(existing);
       }
     });
   }
