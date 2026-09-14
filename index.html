@@ -120,6 +120,10 @@
   tr:last-child td{border-bottom:none;}
   .badge{display:inline-block; background:var(--accent-soft); color:var(--accent); border:1px solid var(--accent); border-radius:5px; padding:2px 7px; font-size:11.5px; margin:0 4px 4px 0; font-family:var(--font-mono);}
   .notes-cell{max-width:220px; white-space:pre-wrap;}
+  .del-cell{width:1%; white-space:nowrap;}
+  .btn-del{background:transparent; color:var(--r4); border:1px solid var(--r4); border-radius:6px; font-family:var(--font-mono); font-size:11px; padding:4px 8px; cursor:pointer;}
+  .btn-del:hover{background:var(--r4); color:#1a1508;}
+  .btn-ghost.is-admin{border-color:var(--accent); color:var(--accent);}
   .setup-warning{background:var(--accent-soft); border:1px solid var(--accent); color:var(--accent); border-radius:10px; padding:12px 14px; font-size:13px; margin-bottom:20px; font-family:var(--font-mono);}
 </style>
 </head>
@@ -181,7 +185,7 @@
     if(!list.length) return '&#8212;';
     return list.map(function(n){ return '<span class="badge">'+esc(n)+'</span>'; }).join(' ');
   }
-  function rosterHTML(roster){
+  function rosterHTML(roster, isAdmin){
     if(!roster.length) return '<p class="empty">No responses yet.</p>';
     var rows = roster.map(function(r){
       var profText = [r.mainProf, r.secProf].filter(Boolean).join(' / ');
@@ -191,9 +195,11 @@
         + '<td>'+badgesHTML(r.profs)+'</td>'
         + '<td>'+esc(profText || '—')+'</td>'
         + '<td class="notes-cell">'+esc(r.notes || '—')+'</td>'
+        + (isAdmin ? '<td class="del-cell"><button type="button" class="btn-del" data-del-id="'+esc(r.id)+'" data-del-name="'+esc(r.name)+'">Remove</button></td>' : '')
         + '</tr>';
     }).join('');
-    return '<div class="table-wrap"><table><thead><tr><th>Name</th><th>Classes</th><th>Professions</th><th>Main / Sec prof</th><th>Notes</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+    var adminHeader = isAdmin ? '<th></th>' : '';
+    return '<div class="table-wrap"><table><thead><tr><th>Name</th><th>Classes</th><th>Professions</th><th>Main / Sec prof</th><th>Notes</th>'+adminHeader+'</tr></thead><tbody>'+rows+'</tbody></table></div>';
   }
   function barsHTML(bars){
     var max = Math.max.apply(null, bars.map(function(b){ return b.agg[1]+b.agg[2]+b.agg[3]+b.agg[4]; }).concat([1]));
@@ -227,7 +233,7 @@
         if(v){ profAgg[p][v]++; profAgg[p].score += v; if(v>=3) rowProfs.push(p); }
       });
       if(rowClasses.length || rowProfs.length){
-        roster.push({ name:e.name, classes:rowClasses, profs:rowProfs, mainProf:e.mainProf, secProf:e.secProf, notes:e.notes });
+        roster.push({ id:e.id, name:e.name, classes:rowClasses, profs:rowProfs, mainProf:e.mainProf, secProf:e.secProf, notes:e.notes });
       }
     });
     var classBars = CLASSES.map(function(c){ return {name:c[0], color:c[1], agg:classAgg[c[0]]}; }).sort(function(a,b){ return b.agg.score - a.agg.score; });
@@ -237,7 +243,7 @@
     var notesCount = entries.filter(function(e){ return e.notes && String(e.notes).trim(); }).length;
     return { total: entries.length, topClass: topClass, topProf: topProf, notesCount: notesCount, classBars: classBars, profBars: profBars, roster: roster };
   }
-  function dashboardHTML(entries){
+  function dashboardHTML(entries, isAdmin){
     if(!configured()){
       return '<div class="setup-warning">Dashboard not connected yet — paste your Apps Script Web App URL into SCRIPT_URL near the top of this file.</div>';
     }
@@ -248,7 +254,7 @@
     return statsHTML(stats)
       + '<div class="demand-block"><h2>Classes</h2>' + legendHTML() + '<div class="bars">' + barsHTML(stats.classBars) + '</div></div>'
       + '<div class="demand-block"><h2>Professions</h2>' + legendHTML() + '<div class="bars">' + barsHTML(stats.profBars) + '</div></div>'
-      + '<div class="roster-block"><h2>Who&rsquo;s interested <span class="hint">(rated Interested or higher on something)</span></h2>' + rosterHTML(stats.roster) + '</div>';
+      + '<div class="roster-block"><h2>Who&rsquo;s interested <span class="hint">(rated Interested or higher on something)</span></h2>' + rosterHTML(stats.roster, isAdmin) + '</div>';
   }
 
   function renderShell(){
@@ -282,7 +288,7 @@
       +   '</form>'
       + '</section>'
       + '<section id="panel-board" class="panel" hidden>'
-      +   '<div class="board-head"><h2 style="font-size:19px;">Live results</h2><button type="button" id="refresh-btn" class="btn-ghost">Refresh</button></div>'
+      +   '<div class="board-head"><h2 style="font-size:19px;">Live results</h2><span style="display:flex; gap:8px;"><button type="button" id="admin-btn" class="btn-ghost">Admin</button><button type="button" id="refresh-btn" class="btn-ghost">Refresh</button></span></div>'
       +   '<div id="board-content"><p class="empty">Loading…</p></div>'
       + '</section>';
   }
@@ -300,6 +306,17 @@
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(entry)
+    }).then(function(res){
+      if(!res.ok) throw new Error('bad status');
+      return res.json();
+    });
+  }
+
+  function deleteEntry(id, key){
+    return fetch(SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'delete', id: id, key: key })
     }).then(function(res){
       if(!res.ok) throw new Error('bad status');
       return res.json();
@@ -361,6 +378,9 @@
       });
     });
 
+    var isAdmin = false;
+    var adminBtn = document.getElementById('admin-btn');
+
     function refreshBoard(){
       boardContent.innerHTML = '<p class="empty">Loading…</p>';
       loadEntries().then(function(entries){
@@ -369,10 +389,59 @@
           return;
         }
         currentEntries = entries;
-        boardContent.innerHTML = dashboardHTML(entries);
+        boardContent.innerHTML = dashboardHTML(entries, isAdmin);
       });
     }
     document.getElementById('refresh-btn').addEventListener('click', refreshBoard);
+
+    adminBtn.addEventListener('click', function(){
+      if(isAdmin){
+        isAdmin = false;
+        adminBtn.textContent = 'Admin';
+        adminBtn.classList.remove('is-admin');
+        boardContent.innerHTML = dashboardHTML(currentEntries, isAdmin);
+        return;
+      }
+      var key = null;
+      try{ key = localStorage.getItem('wfAdminKey'); }catch(e){}
+      if(!key){
+        key = window.prompt('Enter the guild admin passphrase:');
+        if(!key) return;
+        try{ localStorage.setItem('wfAdminKey', key); }catch(e){}
+      }
+      isAdmin = true;
+      adminBtn.textContent = 'Exit admin';
+      adminBtn.classList.add('is-admin');
+      boardContent.innerHTML = dashboardHTML(currentEntries, isAdmin);
+    });
+
+    boardContent.addEventListener('click', function(e){
+      var btn = e.target.closest ? e.target.closest('.btn-del') : null;
+      if(!btn) return;
+      var id = btn.getAttribute('data-del-id');
+      var name = btn.getAttribute('data-del-name');
+      if(!window.confirm('Remove ' + name + '’s entry? This can’t be undone.')) return;
+      var key = null;
+      try{ key = localStorage.getItem('wfAdminKey'); }catch(e){}
+      btn.disabled = true;
+      btn.textContent = 'Removing…';
+      deleteEntry(id, key).then(function(res){
+        if(!res || !res.ok){
+          window.alert('Wrong admin passphrase — click Admin again to re-enter it.');
+          try{ localStorage.removeItem('wfAdminKey'); }catch(e){}
+          isAdmin = false;
+          adminBtn.textContent = 'Admin';
+          adminBtn.classList.remove('is-admin');
+          boardContent.innerHTML = dashboardHTML(currentEntries, false);
+          return;
+        }
+        refreshBoard();
+      }).catch(function(){
+        window.alert('Could not remove that entry — check your connection and try again.');
+        btn.disabled = false;
+        btn.textContent = 'Remove';
+      });
+    });
 
     document.getElementById('signup-form').addEventListener('submit', function(ev){
       ev.preventDefault();
