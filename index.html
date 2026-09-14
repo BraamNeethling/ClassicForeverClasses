@@ -11,7 +11,7 @@
     --line:#3a3b4e; --line-soft:#2a2b3a;
     --text:#ece7d8; --text-dim:#a6a4b8; --text-faint:#716f85;
     --accent:#d7a63b; --accent-strong:#f0c565; --accent-soft:rgba(215,166,59,.16);
-    --r1:#4a4c5f; --r2:#4f7a6c; --r3:#c98a2e; --r4:#e2703a;
+    --r1:#4a3f2c; --r2:#8a6a2f; --r3:#c98a2e; --r4:#e2703a;
     --shadow:0 16px 36px -18px rgba(0,0,0,.6);
     --font-display:'Marcellus', Georgia, 'Times New Roman', serif;
     --font-body:'Source Sans 3', 'Segoe UI', Helvetica, Arial, sans-serif;
@@ -23,7 +23,7 @@
       --line:#d6c9a2; --line-soft:#e4d9bb;
       --text:#241f14; --text-dim:#5c5440; --text-faint:#8c826a;
       --accent:#9a6c1c; --accent-strong:#7d5714; --accent-soft:rgba(154,108,28,.12);
-      --r1:#cabf9d; --r2:#5c8873; --r3:#b3791f; --r4:#c1591f;
+      --r1:#ddd2b0; --r2:#c9a050; --r3:#b3791f; --r4:#c1591f;
       --shadow:0 16px 36px -20px rgba(90,70,30,.28);
     }
   }
@@ -89,7 +89,7 @@
   .rate-btn:hover{border-color:var(--accent);}
   .rate-btn:focus-visible{outline:2px solid var(--accent); outline-offset:1px;}
   .rate-btn[data-value="1"].active{background:var(--r1); color:var(--text); border-color:var(--r1);}
-  .rate-btn[data-value="2"].active{background:var(--r2); color:#fff; border-color:var(--r2);}
+  .rate-btn[data-value="2"].active{background:var(--r2); color:var(--text); border-color:var(--r2);}
   .rate-btn[data-value="3"].active{background:var(--r3); color:#1a1508; border-color:var(--r3);}
   .rate-btn[data-value="4"].active{background:var(--r4); color:#1a1508; border-color:var(--r4); box-shadow:0 0 0 1px var(--r4);}
   .save-row{display:flex; align-items:center; gap:14px; margin-top:8px; flex-wrap:wrap;}
@@ -116,7 +116,7 @@
   @media (max-width:560px){ .bar-row{grid-template-columns:96px 1fr 30px; gap:8px;} }
   .bar-label{display:flex; align-items:center; gap:8px; font-size:13.5px;}
   .bar-track{position:relative; height:16px; background:var(--surface-2); border:1px solid var(--line-soft); border-radius:5px; overflow:hidden; display:flex;}
-  .seg{height:100%; display:inline-block;}
+  .seg{height:100%; display:inline-block; border-right:2px solid var(--surface-2);}
   .seg.r1{background:var(--r1);} .seg.r2{background:var(--r2);} .seg.r3{background:var(--r3);} .seg.r4{background:var(--r4);}
   .bar-total{font-family:var(--font-mono); font-size:12.5px; color:var(--text-faint); text-align:right; font-variant-numeric:tabular-nums;}
   .empty{color:var(--text-faint); font-size:14px; font-style:italic; padding:10px 0;}
