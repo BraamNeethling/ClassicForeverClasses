@@ -69,8 +69,16 @@
   .swatch{width:9px; height:9px; border-radius:2px; display:inline-block;}
   .swatch.r1{background:var(--r1);} .swatch.r2{background:var(--r2);} .swatch.r3{background:var(--r3);} .swatch.r4{background:var(--r4);}
   .rows{display:flex; flex-direction:column; border-top:1px solid var(--line-soft);}
-  .row{display:flex; align-items:center; justify-content:space-between; gap:14px; padding:10px 2px; border-bottom:1px solid var(--line-soft); flex-wrap:wrap;}
+  .item:last-child{border-bottom:none;}
+  .item{border-bottom:1px solid var(--line-soft);}
+  .row{display:flex; align-items:center; justify-content:space-between; gap:14px; padding:10px 2px; flex-wrap:wrap;}
   .row-label{display:flex; align-items:center; gap:9px; font-size:14.5px; min-width:120px;}
+  .spec-row{display:flex; align-items:center; gap:10px; padding:0 2px 12px 20px; flex-wrap:wrap;}
+  .spec-row span{font-size:12.5px; font-weight:600; color:var(--text-faint);}
+  .spec-row select{background:var(--surface-2); border:1px solid var(--line); color:var(--text); border-radius:6px; padding:6px 8px; font-family:var(--font-body); font-size:13px;}
+  .faction-btns{display:grid; grid-template-columns:repeat(3,1fr); gap:6px;}
+  @media (max-width:480px){ .faction-btns{grid-template-columns:1fr;} }
+  .faction-btn.active{background:var(--accent); color:#1a1508; border-color:var(--accent);}
   .dot{width:10px; height:10px; border-radius:50%; display:inline-block; box-shadow:0 0 0 1px rgba(0,0,0,.35) inset;}
   .row-btns{display:grid; grid-template-columns:repeat(4,minmax(74px,1fr)); gap:6px;}
   @media (max-width:640px){ .row{flex-direction:column; align-items:stretch;} .row-btns{grid-template-columns:repeat(2,1fr);} }
@@ -140,6 +148,18 @@
   ];
   var PROFESSIONS = ["Alchemy","Blacksmithing","Enchanting","Engineering","Herbalism","Leatherworking","Mining","Skinning","Tailoring"];
   var RATINGS = [[1,"Not really"],[2,"Open to it"],[3,"Interested"],[4,"Really want it"]];
+  var FACTIONS = ["Horde","Alliance","I don't care"];
+  var SPECS = {
+    Warrior: ["Arms","Fury","Protection"],
+    Paladin: ["Holy","Protection","Retribution"],
+    Hunter: ["Beast Mastery","Marksmanship","Survival"],
+    Rogue: ["Assassination","Combat","Subtlety"],
+    Priest: ["Discipline","Holy","Shadow"],
+    Shaman: ["Elemental","Enhancement","Restoration"],
+    Mage: ["Arcane","Fire","Frost"],
+    Warlock: ["Affliction","Demonology","Destruction"],
+    Druid: ["Balance","Feral Combat","Restoration"]
+  };
 
   function esc(s){
     return String(s==null?"":s).replace(/[&<>"']/g, function(c){
@@ -170,6 +190,20 @@
       + '<span class="row-btns">'+btns+'</span>'
       + '</div>';
   }
+  function specRowHTML(className){
+    var specs = SPECS[className];
+    if(!specs) return '';
+    var options = '<option value="">Not sure yet</option>' + specs.map(function(s){ return '<option value="'+esc(s)+'">'+esc(s)+'</option>'; }).join('');
+    return '<div class="spec-row" data-spec-row="'+esc(className)+'" hidden>'
+      + '<span>Preferred spec</span>'
+      + '<select class="spec-select" data-spec-for="'+esc(className)+'">'+options+'</select>'
+      + '</div>';
+  }
+  function factionHTML(){
+    return '<div class="faction-btns" id="factionBtns">' + FACTIONS.map(function(f){
+      return '<button type="button" class="rate-btn faction-btn" data-faction="'+esc(f)+'">'+esc(f)+'</button>';
+    }).join('') + '</div>';
+  }
   function tileHTML(label, value){
     return '<div class="tile"><span class="tile-value">'+esc(value)+'</span><span class="tile-label">'+esc(label)+'</span></div>';
   }
@@ -183,7 +217,10 @@
   }
   function badgesHTML(list){
     if(!list.length) return '&#8212;';
-    return list.map(function(n){ return '<span class="badge">'+esc(n)+'</span>'; }).join(' ');
+    return list.map(function(item){
+      var label = (item && typeof item === 'object') ? (item.spec ? item.name+' ('+item.spec+')' : item.name) : item;
+      return '<span class="badge">'+esc(label)+'</span>';
+    }).join(' ');
   }
   function rosterHTML(roster, isAdmin){
     if(!roster.length) return '<p class="empty">No responses yet.</p>';
@@ -191,6 +228,7 @@
       var profText = [r.mainProf, r.secProf].filter(Boolean).join(' / ');
       return '<tr>'
         + '<td>'+esc(r.name)+'</td>'
+        + '<td>'+esc(r.faction || '—')+'</td>'
         + '<td>'+badgesHTML(r.classes)+'</td>'
         + '<td>'+badgesHTML(r.profs)+'</td>'
         + '<td>'+esc(profText || '—')+'</td>'
@@ -199,7 +237,7 @@
         + '</tr>';
     }).join('');
     var adminHeader = isAdmin ? '<th></th>' : '';
-    return '<div class="table-wrap"><table><thead><tr><th>Name</th><th>Classes</th><th>Professions</th><th>Main / Sec prof</th><th>Notes</th>'+adminHeader+'</tr></thead><tbody>'+rows+'</tbody></table></div>';
+    return '<div class="table-wrap"><table><thead><tr><th>Name</th><th>Faction</th><th>Classes</th><th>Professions</th><th>Main / Sec prof</th><th>Notes</th>'+adminHeader+'</tr></thead><tbody>'+rows+'</tbody></table></div>';
   }
   function barsHTML(bars){
     var max = Math.max.apply(null, bars.map(function(b){ return b.agg[1]+b.agg[2]+b.agg[3]+b.agg[4]; }).concat([1]));
@@ -226,14 +264,17 @@
       var rowClasses = [], rowProfs = [];
       CLASSES.forEach(function(c){
         var v = e.classes && e.classes[c[0]];
-        if(v){ classAgg[c[0]][v]++; classAgg[c[0]].score += v; if(v>=3) rowClasses.push(c[0]); }
+        if(v){
+          classAgg[c[0]][v]++; classAgg[c[0]].score += v;
+          if(v>=3) rowClasses.push({ name:c[0], spec:(e.specs && e.specs[c[0]]) || '' });
+        }
       });
       PROFESSIONS.forEach(function(p){
         var v = e.professions && e.professions[p];
         if(v){ profAgg[p][v]++; profAgg[p].score += v; if(v>=3) rowProfs.push(p); }
       });
       if(rowClasses.length || rowProfs.length){
-        roster.push({ id:e.id, name:e.name, classes:rowClasses, profs:rowProfs, mainProf:e.mainProf, secProf:e.secProf, notes:e.notes });
+        roster.push({ id:e.id, name:e.name, faction:e.faction, classes:rowClasses, profs:rowProfs, mainProf:e.mainProf, secProf:e.secProf, notes:e.notes });
       }
     });
     var classBars = CLASSES.map(function(c){ return {name:c[0], color:c[1], agg:classAgg[c[0]]}; }).sort(function(a,b){ return b.agg.score - a.agg.score; });
@@ -259,8 +300,8 @@
 
   function renderShell(){
     var profOptions = '<option value="">Not sure yet</option>' + PROFESSIONS.map(function(p){ return '<option value="'+esc(p)+'">'+esc(p)+'</option>'; }).join('');
-    var classRows = CLASSES.map(function(c){ return rowHTML('class', c[0], c[1]); }).join('');
-    var profRows = PROFESSIONS.map(function(p){ return rowHTML('prof', p, null); }).join('');
+    var classRows = CLASSES.map(function(c){ return '<div class="item">' + rowHTML('class', c[0], c[1]) + specRowHTML(c[0]) + '</div>'; }).join('');
+    var profRows = PROFESSIONS.map(function(p){ return '<div class="item">' + rowHTML('prof', p, null) + '</div>'; }).join('');
 
     document.getElementById('root').innerHTML = ''
       + '<header class="charter-head">'
@@ -277,6 +318,7 @@
       +   (configured() ? '' : '<div class="setup-warning">This form isn\'t connected to a spreadsheet yet — paste your Apps Script Web App URL into SCRIPT_URL near the top of this file.</div>')
       +   '<form id="signup-form">'
       +     '<label class="field"><span>Your name (Discord or character name)</span><input type="text" id="f-name" placeholder="e.g. Brannor" autocomplete="off" required></label>'
+      +     '<div class="field"><span>Faction</span>' + factionHTML() + '</div>'
       +     '<div class="rate-section"><h2>Classes</h2>' + legendHTML() + '<div id="classRows" class="rows">' + classRows + '</div></div>'
       +     '<div class="rate-section"><h2>Professions</h2>' + legendHTML() + '<div id="profRows" class="rows">' + profRows + '</div></div>'
       +     '<div class="two-col">'
@@ -336,8 +378,9 @@
     var profRows = document.getElementById('profRows');
     var boardContent = document.getElementById('board-content');
 
-    var draft = { id:null, classes:{}, professions:{} };
+    var draft = { id:null, classes:{}, professions:{}, specs:{}, faction:'' };
     var currentEntries = [];
+    var factionBtns = document.getElementById('factionBtns');
 
     function applyActive(container, values){
       container.querySelectorAll('.row').forEach(function(row){
@@ -347,6 +390,17 @@
           btn.classList.toggle('active', !!v && Number(btn.getAttribute('data-value'))===v);
         });
       });
+    }
+
+    function showSpecRow(className, show){
+      var specRow = classRows.querySelector('.spec-row[data-spec-row="'+className+'"]');
+      if(!specRow) return;
+      specRow.hidden = !show;
+      if(!show){
+        var sel = specRow.querySelector('select');
+        if(sel) sel.value = '';
+        delete draft.specs[className];
+      }
     }
 
     function onRateClick(e){
@@ -359,9 +413,26 @@
       target[name] = value;
       var row = btn.closest('.row');
       row.querySelectorAll('.rate-btn').forEach(function(b){ b.classList.toggle('active', b===btn); });
+      if(kind==='class') showSpecRow(name, value>=2);
     }
     classRows.addEventListener('click', onRateClick);
     profRows.addEventListener('click', onRateClick);
+
+    classRows.addEventListener('change', function(e){
+      var sel = e.target.closest ? e.target.closest('.spec-select') : null;
+      if(!sel) return;
+      var cls = sel.getAttribute('data-spec-for');
+      if(sel.value) draft.specs[cls] = sel.value; else delete draft.specs[cls];
+    });
+
+    if(factionBtns){
+      factionBtns.addEventListener('click', function(e){
+        var btn = e.target.closest ? e.target.closest('.faction-btn') : null;
+        if(!btn) return;
+        draft.faction = btn.getAttribute('data-faction');
+        factionBtns.querySelectorAll('.faction-btn').forEach(function(b){ b.classList.toggle('active', b===btn); });
+      });
+    }
 
     document.querySelectorAll('.tab-btn').forEach(function(btn){
       btn.addEventListener('click', function(){
@@ -450,8 +521,10 @@
       var entry = {
         id: draft.id || ((window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ('e'+Date.now()+Math.random().toString(16).slice(2))),
         name: name,
+        faction: draft.faction || '',
         classes: draft.classes,
         professions: draft.professions,
+        specs: draft.specs,
         mainProf: mainSel.value,
         secProf: secSel.value,
         notes: notesInput.value.trim()
@@ -483,12 +556,26 @@
           draft.id = existing.id;
           draft.classes = existing.classes || {};
           draft.professions = existing.professions || {};
+          draft.specs = existing.specs || {};
+          draft.faction = existing.faction || '';
           nameInput.value = existing.name || '';
           mainSel.value = existing.mainProf || '';
           secSel.value = existing.secProf || '';
           notesInput.value = existing.notes || '';
           applyActive(classRows, draft.classes);
           applyActive(profRows, draft.professions);
+          if(factionBtns){
+            factionBtns.querySelectorAll('.faction-btn').forEach(function(b){
+              b.classList.toggle('active', b.getAttribute('data-faction')===draft.faction);
+            });
+          }
+          Object.keys(draft.classes).forEach(function(cls){
+            if(draft.classes[cls] >= 2) showSpecRow(cls, true);
+          });
+          Object.keys(draft.specs).forEach(function(cls){
+            var sel = classRows.querySelector('.spec-select[data-spec-for="'+cls+'"]');
+            if(sel) sel.value = draft.specs[cls];
+          });
           saveBtn.textContent = 'Update my interest';
         }
       }
