@@ -76,9 +76,9 @@
   .spec-row{display:flex; align-items:center; gap:10px; padding:0 2px 12px 20px; flex-wrap:wrap;}
   .spec-row span{font-size:12.5px; font-weight:600; color:var(--text-faint);}
   .spec-row select{background:var(--surface-2); border:1px solid var(--line); color:var(--text); border-radius:6px; padding:6px 8px; font-family:var(--font-body); font-size:13px;}
-  .faction-btns{display:grid; grid-template-columns:repeat(3,1fr); gap:6px;}
-  @media (max-width:480px){ .faction-btns{grid-template-columns:1fr;} }
-  .faction-btn.active{background:var(--accent); color:#1a1508; border-color:var(--accent);}
+  .choice-btns{display:grid; grid-template-columns:repeat(auto-fit,minmax(100px,1fr)); gap:6px;}
+  @media (max-width:480px){ .choice-btns{grid-template-columns:1fr 1fr;} }
+  .choice-btn.active{background:var(--accent); color:#1a1508; border-color:var(--accent);}
   .dot{width:10px; height:10px; border-radius:50%; display:inline-block; box-shadow:0 0 0 1px rgba(0,0,0,.35) inset;}
   .row-btns{display:grid; grid-template-columns:repeat(4,minmax(74px,1fr)); gap:6px;}
   @media (max-width:640px){ .row{flex-direction:column; align-items:stretch;} .row-btns{grid-template-columns:repeat(2,1fr);} }
@@ -149,6 +149,7 @@
   var PROFESSIONS = ["Alchemy","Blacksmithing","Enchanting","Engineering","Herbalism","Leatherworking","Mining","Skinning","Tailoring"];
   var RATINGS = [[1,"Not really"],[2,"Open to it"],[3,"Interested"],[4,"Really want it"]];
   var FACTIONS = ["Horde","Alliance","I don't care"];
+  var SERVER_TYPES = ["PvE","PvP","RP","I don't care"];
   var SPECS = {
     Warrior: ["Arms","Fury","Protection"],
     Paladin: ["Holy","Protection","Retribution"],
@@ -199,9 +200,9 @@
       + '<select class="spec-select" data-spec-for="'+esc(className)+'">'+options+'</select>'
       + '</div>';
   }
-  function factionHTML(){
-    return '<div class="faction-btns" id="factionBtns">' + FACTIONS.map(function(f){
-      return '<button type="button" class="rate-btn faction-btn" data-faction="'+esc(f)+'">'+esc(f)+'</button>';
+  function choiceButtonsHTML(containerId, attrName, options){
+    return '<div class="choice-btns" id="'+containerId+'">' + options.map(function(o){
+      return '<button type="button" class="rate-btn choice-btn" data-'+attrName+'="'+esc(o)+'">'+esc(o)+'</button>';
     }).join('') + '</div>';
   }
   function tileHTML(label, value){
@@ -229,6 +230,7 @@
       return '<tr>'
         + '<td>'+esc(r.name)+'</td>'
         + '<td>'+esc(r.faction || '—')+'</td>'
+        + '<td>'+esc(r.serverType || '—')+'</td>'
         + '<td>'+badgesHTML(r.classes)+'</td>'
         + '<td>'+badgesHTML(r.profs)+'</td>'
         + '<td>'+esc(profText || '—')+'</td>'
@@ -237,7 +239,7 @@
         + '</tr>';
     }).join('');
     var adminHeader = isAdmin ? '<th></th>' : '';
-    return '<div class="table-wrap"><table><thead><tr><th>Name</th><th>Faction</th><th>Classes</th><th>Professions</th><th>Main / Sec prof</th><th>Notes</th>'+adminHeader+'</tr></thead><tbody>'+rows+'</tbody></table></div>';
+    return '<div class="table-wrap"><table><thead><tr><th>Name</th><th>Faction</th><th>Server</th><th>Classes</th><th>Professions</th><th>Main / Sec prof</th><th>Notes</th>'+adminHeader+'</tr></thead><tbody>'+rows+'</tbody></table></div>';
   }
   function barsHTML(bars){
     var max = Math.max.apply(null, bars.map(function(b){ return b.agg[1]+b.agg[2]+b.agg[3]+b.agg[4]; }).concat([1]));
@@ -274,7 +276,7 @@
         if(v){ profAgg[p][v]++; profAgg[p].score += v; if(v>=3) rowProfs.push(p); }
       });
       if(rowClasses.length || rowProfs.length){
-        roster.push({ id:e.id, name:e.name, faction:e.faction, classes:rowClasses, profs:rowProfs, mainProf:e.mainProf, secProf:e.secProf, notes:e.notes });
+        roster.push({ id:e.id, name:e.name, faction:e.faction, serverType:e.serverType, classes:rowClasses, profs:rowProfs, mainProf:e.mainProf, secProf:e.secProf, notes:e.notes });
       }
     });
     var classBars = CLASSES.map(function(c){ return {name:c[0], color:c[1], agg:classAgg[c[0]]}; }).sort(function(a,b){ return b.agg.score - a.agg.score; });
@@ -318,7 +320,8 @@
       +   (configured() ? '' : '<div class="setup-warning">This form isn\'t connected to a spreadsheet yet — paste your Apps Script Web App URL into SCRIPT_URL near the top of this file.</div>')
       +   '<form id="signup-form">'
       +     '<label class="field"><span>Your name (Discord or character name)</span><input type="text" id="f-name" placeholder="e.g. Brannor" autocomplete="off" required></label>'
-      +     '<div class="field"><span>Faction</span>' + factionHTML() + '</div>'
+      +     '<div class="field"><span>Faction</span>' + choiceButtonsHTML('factionBtns','faction',FACTIONS) + '</div>'
+      +     '<div class="field"><span>Server type</span>' + choiceButtonsHTML('serverBtns','server',SERVER_TYPES) + '</div>'
       +     '<div class="rate-section"><h2>Classes</h2>' + legendHTML() + '<div id="classRows" class="rows">' + classRows + '</div></div>'
       +     '<div class="rate-section"><h2>Professions</h2>' + legendHTML() + '<div id="profRows" class="rows">' + profRows + '</div></div>'
       +     '<div class="two-col">'
@@ -378,9 +381,10 @@
     var profRows = document.getElementById('profRows');
     var boardContent = document.getElementById('board-content');
 
-    var draft = { id:null, classes:{}, professions:{}, specs:{}, faction:'' };
+    var draft = { id:null, classes:{}, professions:{}, specs:{}, faction:'', serverType:'' };
     var currentEntries = [];
     var factionBtns = document.getElementById('factionBtns');
+    var serverBtns = document.getElementById('serverBtns');
 
     function applyActive(container, values){
       container.querySelectorAll('.row').forEach(function(row){
@@ -427,10 +431,18 @@
 
     if(factionBtns){
       factionBtns.addEventListener('click', function(e){
-        var btn = e.target.closest ? e.target.closest('.faction-btn') : null;
+        var btn = e.target.closest ? e.target.closest('.choice-btn') : null;
         if(!btn) return;
         draft.faction = btn.getAttribute('data-faction');
-        factionBtns.querySelectorAll('.faction-btn').forEach(function(b){ b.classList.toggle('active', b===btn); });
+        factionBtns.querySelectorAll('.choice-btn').forEach(function(b){ b.classList.toggle('active', b===btn); });
+      });
+    }
+    if(serverBtns){
+      serverBtns.addEventListener('click', function(e){
+        var btn = e.target.closest ? e.target.closest('.choice-btn') : null;
+        if(!btn) return;
+        draft.serverType = btn.getAttribute('data-server');
+        serverBtns.querySelectorAll('.choice-btn').forEach(function(b){ b.classList.toggle('active', b===btn); });
       });
     }
 
@@ -522,6 +534,7 @@
         id: draft.id || ((window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ('e'+Date.now()+Math.random().toString(16).slice(2))),
         name: name,
         faction: draft.faction || '',
+        serverType: draft.serverType || '',
         classes: draft.classes,
         professions: draft.professions,
         specs: draft.specs,
@@ -558,6 +571,7 @@
           draft.professions = existing.professions || {};
           draft.specs = existing.specs || {};
           draft.faction = existing.faction || '';
+          draft.serverType = existing.serverType || '';
           nameInput.value = existing.name || '';
           mainSel.value = existing.mainProf || '';
           secSel.value = existing.secProf || '';
@@ -565,8 +579,13 @@
           applyActive(classRows, draft.classes);
           applyActive(profRows, draft.professions);
           if(factionBtns){
-            factionBtns.querySelectorAll('.faction-btn').forEach(function(b){
+            factionBtns.querySelectorAll('.choice-btn').forEach(function(b){
               b.classList.toggle('active', b.getAttribute('data-faction')===draft.faction);
+            });
+          }
+          if(serverBtns){
+            serverBtns.querySelectorAll('.choice-btn').forEach(function(b){
+              b.classList.toggle('active', b.getAttribute('data-server')===draft.serverType);
             });
           }
           Object.keys(draft.classes).forEach(function(cls){
