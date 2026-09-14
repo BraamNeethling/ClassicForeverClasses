@@ -66,6 +66,12 @@
   .rate-section h2, .demand-block h2, .roster-block h2{font-size:19px; margin-bottom:8px;}
   .legend{display:flex; flex-wrap:wrap; gap:12px 18px; font-family:var(--font-mono); font-size:11px; color:var(--text-faint); margin-bottom:14px; letter-spacing:.02em;}
   .legend-item{display:inline-flex; align-items:center; gap:6px;}
+  button.legend-item{background:none; border:none; padding:0; font:inherit; letter-spacing:inherit; color:inherit; cursor:pointer; opacity:.4;}
+  button.legend-item.active{opacity:1;}
+  button.legend-item:hover{opacity:.75;}
+  button.legend-item.active:hover{opacity:1;}
+  button.legend-item:focus-visible{outline:2px solid var(--accent); outline-offset:3px; border-radius:3px;}
+  .legend-hint{font-family:var(--font-body); font-size:11.5px; color:var(--text-faint); margin:-6px 0 14px; font-style:italic;}
   .swatch{width:9px; height:9px; border-radius:2px; display:inline-block;}
   .swatch.r1{background:var(--r1);} .swatch.r2{background:var(--r2);} .swatch.r3{background:var(--r3);} .swatch.r4{background:var(--r4);}
   .rows{display:flex; flex-direction:column; border-top:1px solid var(--line-soft);}
@@ -181,6 +187,13 @@
       return '<span class="legend-item"><i class="swatch r'+r[0]+'"></i>'+r[1]+'</span>';
     }).join('') + '</div>';
   }
+  function filterLegendHTML(section, active){
+    return '<div class="legend">' + RATINGS.map(function(r){
+      var isActive = active.has(r[0]);
+      return '<button type="button" class="legend-item'+(isActive?' active':'')+'" data-filter-section="'+section+'" data-filter-level="'+r[0]+'"><i class="swatch r'+r[0]+'"></i>'+r[1]+'</button>';
+    }).join('') + '</div>'
+    + '<p class="legend-hint">Click a level to filter to it &mdash; click again to bring it back.</p>';
+  }
   function rowHTML(kind, name, color){
     var dot = color ? '<span class="dot" style="background:'+color+'"></span>' : '';
     var btns = RATINGS.map(function(r){
@@ -241,19 +254,28 @@
     var adminHeader = isAdmin ? '<th></th>' : '';
     return '<div class="table-wrap"><table><thead><tr><th>Name</th><th>Faction</th><th>Server</th><th>Classes</th><th>Professions</th><th>Main / Sec prof</th><th>Notes</th>'+adminHeader+'</tr></thead><tbody>'+rows+'</tbody></table></div>';
   }
-  function barsHTML(bars){
-    var max = Math.max.apply(null, bars.map(function(b){ return b.agg[1]+b.agg[2]+b.agg[3]+b.agg[4]; }).concat([1]));
-    return bars.map(function(b){
-      var total = b.agg[1]+b.agg[2]+b.agg[3]+b.agg[4];
+  function barsHTML(bars, activeLevels){
+    var computed = bars.map(function(b){
+      var total = 0, score = 0;
+      activeLevels.forEach(function(v){ total += b.agg[v]; score += v*b.agg[v]; });
+      return { name:b.name, color:b.color, agg:b.agg, total:total, score:score };
+    }).sort(function(a,b){ return b.score - a.score; });
+
+    if(!computed.some(function(b){ return b.total>0; })){
+      return '<p class="empty">No responses match this filter.</p>';
+    }
+
+    var max = Math.max.apply(null, computed.map(function(b){ return b.total; }).concat([1]));
+    return computed.map(function(b){
       var dot = b.color ? '<span class="dot" style="background:'+b.color+'"></span>' : '';
-      var segs = [1,2,3,4].map(function(v){
+      var segs = [1,2,3,4].filter(function(v){ return activeLevels.has(v); }).map(function(v){
         var w = max ? (b.agg[v]/max*100) : 0;
         return b.agg[v] ? '<span class="seg r'+v+'" style="width:'+w+'%"></span>' : '';
       }).join('');
       return '<div class="bar-row">'
         + '<span class="bar-label">'+dot+esc(b.name)+'</span>'
         + '<span class="bar-track">'+segs+'</span>'
-        + '<span class="bar-total">'+total+'</span>'
+        + '<span class="bar-total">'+b.total+'</span>'
         + '</div>';
     }).join('');
   }
@@ -286,7 +308,7 @@
     var notesCount = entries.filter(function(e){ return e.notes && String(e.notes).trim(); }).length;
     return { total: entries.length, topClass: topClass, topProf: topProf, notesCount: notesCount, classBars: classBars, profBars: profBars, roster: roster };
   }
-  function dashboardHTML(entries, isAdmin){
+  function dashboardHTML(entries, isAdmin, activeClassLevels, activeProfLevels){
     if(!configured()){
       return '<div class="setup-warning">Dashboard not connected yet — paste your Apps Script Web App URL into SCRIPT_URL near the top of this file.</div>';
     }
@@ -295,8 +317,8 @@
       return '<p class="empty">No responses yet. Be the first to give your interest.</p>';
     }
     return statsHTML(stats)
-      + '<div class="demand-block"><h2>Classes</h2>' + legendHTML() + '<div class="bars">' + barsHTML(stats.classBars) + '</div></div>'
-      + '<div class="demand-block"><h2>Professions</h2>' + legendHTML() + '<div class="bars">' + barsHTML(stats.profBars) + '</div></div>'
+      + '<div class="demand-block"><h2>Classes</h2>' + filterLegendHTML('class', activeClassLevels) + '<div class="bars">' + barsHTML(stats.classBars, activeClassLevels) + '</div></div>'
+      + '<div class="demand-block"><h2>Professions</h2>' + filterLegendHTML('prof', activeProfLevels) + '<div class="bars">' + barsHTML(stats.profBars, activeProfLevels) + '</div></div>'
       + '<div class="roster-block"><h2>Who&rsquo;s interested <span class="hint">(rated Interested or higher on something)</span></h2>' + rosterHTML(stats.roster, isAdmin) + '</div>';
   }
 
@@ -463,6 +485,12 @@
 
     var isAdmin = false;
     var adminBtn = document.getElementById('admin-btn');
+    var activeClassLevels = new Set([1,2,3,4]);
+    var activeProfLevels = new Set([1,2,3,4]);
+
+    function renderBoard(){
+      boardContent.innerHTML = dashboardHTML(currentEntries, isAdmin, activeClassLevels, activeProfLevels);
+    }
 
     function refreshBoard(){
       boardContent.innerHTML = '<p class="empty">Loading…</p>';
@@ -472,7 +500,7 @@
           return;
         }
         currentEntries = entries;
-        boardContent.innerHTML = dashboardHTML(entries, isAdmin);
+        renderBoard();
       });
     }
     document.getElementById('refresh-btn').addEventListener('click', refreshBoard);
@@ -482,7 +510,7 @@
         isAdmin = false;
         adminBtn.textContent = 'Admin';
         adminBtn.classList.remove('is-admin');
-        boardContent.innerHTML = dashboardHTML(currentEntries, isAdmin);
+        renderBoard();
         return;
       }
       var key = null;
@@ -495,10 +523,23 @@
       isAdmin = true;
       adminBtn.textContent = 'Exit admin';
       adminBtn.classList.add('is-admin');
-      boardContent.innerHTML = dashboardHTML(currentEntries, isAdmin);
+      renderBoard();
     });
 
     boardContent.addEventListener('click', function(e){
+      var legendBtn = e.target.closest ? e.target.closest('.legend-item') : null;
+      if(legendBtn){
+        var section = legendBtn.getAttribute('data-filter-section');
+        var level = Number(legendBtn.getAttribute('data-filter-level'));
+        var set = section === 'class' ? activeClassLevels : activeProfLevels;
+        if(set.has(level)){
+          if(set.size > 1) set.delete(level);
+        } else {
+          set.add(level);
+        }
+        renderBoard();
+        return;
+      }
       var btn = e.target.closest ? e.target.closest('.btn-del') : null;
       if(!btn) return;
       var id = btn.getAttribute('data-del-id');
@@ -515,7 +556,7 @@
           isAdmin = false;
           adminBtn.textContent = 'Admin';
           adminBtn.classList.remove('is-admin');
-          boardContent.innerHTML = dashboardHTML(currentEntries, false);
+          renderBoard();
           return;
         }
         refreshBoard();
