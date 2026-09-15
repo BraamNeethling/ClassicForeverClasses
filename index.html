@@ -135,7 +135,7 @@
   .spec-tally{margin:2px 0 0 142px; font-size:11.5px; color:var(--text-faint); font-style:italic;}
   @media (max-width:560px){ .spec-tally{margin-left:0;} }
   .empty{color:var(--text-faint); font-size:14px; font-style:italic; padding:10px 0;}
-  .roster-block h2 .hint{font-family:var(--font-body); font-size:12.5px; font-weight:400; color:var(--text-faint);}
+  h2 .hint{font-family:var(--font-body); font-size:12.5px; font-weight:400; color:var(--text-faint);}
   .table-wrap{overflow-x:auto; border:1px solid var(--line); border-radius:10px;}
   table{border-collapse:collapse; width:100%; min-width:640px; font-size:13.5px;}
   th,td{text-align:left; padding:10px 12px; border-bottom:1px solid var(--line-soft); vertical-align:top;}
@@ -147,6 +147,10 @@
   .btn-del{background:transparent; color:var(--r4); border:1px solid var(--r4); border-radius:6px; font-family:var(--font-mono); font-size:11px; padding:4px 8px; cursor:pointer;}
   .btn-del:hover{background:var(--r4); color:#1a1508;}
   .btn-ghost.is-admin{border-color:var(--accent); color:var(--accent);}
+  .followup-list{display:flex; flex-direction:column;}
+  .followup-row{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; padding:8px 0; border-bottom:1px solid var(--line-soft);}
+  .followup-row:last-child{border-bottom:none;}
+  .followup-missing{font-family:var(--font-mono); font-size:11.5px; color:var(--text-faint);}
   .link-btn{background:none; border:none; padding:0; font:inherit; color:var(--accent); cursor:pointer; text-decoration:underline; text-decoration-color:transparent; text-underline-offset:2px; transition:text-decoration-color .15s;}
   .link-btn:hover{text-decoration-color:var(--accent);}
   .link-btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:2px;}
@@ -180,6 +184,21 @@
     Warlock: ["Affliction","Demonology","Destruction"],
     Druid: ["Balance","Feral Combat","Restoration"]
   };
+  // Rough Classic role for each spec, used for the dashboard's role-balance tally.
+  // Feral Combat covers both bear-tank and cat-dps play from one talent tree in
+  // Classic, so it gets its own "Flex" bucket rather than being forced into one.
+  var SPEC_ROLE = {
+    Warrior: { Arms:"DPS", Fury:"DPS", Protection:"Tank" },
+    Paladin: { Holy:"Healer", Protection:"Tank", Retribution:"DPS" },
+    Hunter: { "Beast Mastery":"DPS", Marksmanship:"DPS", Survival:"DPS" },
+    Rogue: { Assassination:"DPS", Combat:"DPS", Subtlety:"DPS" },
+    Priest: { Discipline:"Healer", Holy:"Healer", Shadow:"DPS" },
+    Shaman: { Elemental:"DPS", Enhancement:"DPS", Restoration:"Healer" },
+    Mage: { Arcane:"DPS", Fire:"DPS", Frost:"DPS" },
+    Warlock: { Affliction:"DPS", Demonology:"DPS", Destruction:"DPS" },
+    Druid: { Balance:"DPS", "Feral Combat":"Flex", Restoration:"Healer" }
+  };
+  var ROLE_COLORS = { Tank:"#3b6fa0", Healer:"#4f8f5e", DPS:"#b23a2e", Flex:"#8a6a2f", Unspecified:"var(--text-faint)" };
 
   function esc(s){
     return String(s==null?"":s).replace(/[&<>"']/g, function(c){
@@ -282,6 +301,17 @@
         + '</div>';
     }).join('');
   }
+  function followUpHTML(list){
+    if(!list.length) return '';
+    var rows = list.map(function(r){
+      return '<div class="followup-row">'
+        + '<button type="button" class="link-btn" data-edit-id="'+esc(r.id)+'" title="Edit this entry">'+esc(r.name)+'</button>'
+        + '<span class="followup-missing">missing '+esc(r.missing.join(', '))+'</span>'
+        + '</div>';
+    }).join('');
+    return '<div class="demand-block"><h2>Needs a follow-up <span class="hint">(click a name to fill it in)</span></h2>'
+      + '<div class="followup-list">' + rows + '</div></div>';
+  }
   function specTallyHTML(specVotes, activeLevels){
     var tally = {};
     specVotes.forEach(function(v){
@@ -325,6 +355,8 @@
     var classAgg = {}, profAgg = {}, classSpecs = {};
     CLASSES.forEach(function(c){ classAgg[c[0]] = {1:0,2:0,3:0,4:0,score:0}; classSpecs[c[0]] = []; });
     PROFESSIONS.forEach(function(p){ profAgg[p] = {1:0,2:0,3:0,4:0,score:0}; });
+    var roleAgg = { Tank:0, Healer:0, DPS:0, Flex:0, Unspecified:0 };
+    var profCoverageAgg = {}; PROFESSIONS.forEach(function(p){ profCoverageAgg[p] = 0; });
     var roster = [];
     entries.forEach(function(e){
       var rowClasses = [], rowProfs = [];
@@ -332,18 +364,41 @@
         var v = e.classes && e.classes[c[0]];
         if(v){
           classAgg[c[0]][v]++; classAgg[c[0]].score += v;
-          classSpecs[c[0]].push({ level:v, spec:(e.specs && e.specs[c[0]]) || '' });
-          if(v>=3) rowClasses.push({ name:c[0], spec:(e.specs && e.specs[c[0]]) || '' });
+          var spec = (e.specs && e.specs[c[0]]) || '';
+          classSpecs[c[0]].push({ level:v, spec:spec });
+          if(v>=3){
+            rowClasses.push({ name:c[0], spec:spec });
+            var role = spec ? (SPEC_ROLE[c[0]] && SPEC_ROLE[c[0]][spec]) : null;
+            roleAgg[role || 'Unspecified']++;
+          }
         }
       });
       PROFESSIONS.forEach(function(p){
         var v = e.professions && e.professions[p];
         if(v){ profAgg[p][v]++; profAgg[p].score += v; if(v>=3) rowProfs.push(p); }
       });
+      if(e.mainProf && profCoverageAgg.hasOwnProperty(e.mainProf)) profCoverageAgg[e.mainProf]++;
+      if(e.secProf && profCoverageAgg.hasOwnProperty(e.secProf)) profCoverageAgg[e.secProf]++;
       if(rowClasses.length || rowProfs.length){
         roster.push({ id:e.id, name:e.name, faction:e.faction, serverType:e.serverType, classes:rowClasses, profs:rowProfs, mainProf:e.mainProf, secProf:e.secProf, notes:e.notes });
       }
     });
+
+    var roleTally = ['Tank','Healer','DPS','Flex','Unspecified'].map(function(r){
+      return { name:r, count:roleAgg[r], color:ROLE_COLORS[r] };
+    }).filter(function(r){ return r.count>0; }).sort(function(a,b){ return b.count-a.count; });
+
+    var profCoverage = PROFESSIONS.map(function(p){ return { name:p, count:profCoverageAgg[p] }; }).sort(function(a,b){ return a.count-b.count; });
+
+    var needsFollowUp = entries.filter(function(e){ return e.name; }).map(function(e){
+      var missing = [];
+      if(!e.faction) missing.push('faction');
+      if(!e.serverType) missing.push('server type');
+      var hasClasses = e.classes && Object.keys(e.classes).length>0;
+      var hasProfs = e.professions && Object.keys(e.professions).length>0;
+      if(!hasClasses && !hasProfs) missing.push('any ratings');
+      return { id:e.id, name:e.name, missing:missing };
+    }).filter(function(r){ return r.missing.length>0; });
     var classBars = CLASSES.map(function(c){ return {name:c[0], color:c[1], agg:classAgg[c[0]], specVotes:classSpecs[c[0]]}; }).sort(function(a,b){ return b.agg.score - a.agg.score; });
     var profBars = PROFESSIONS.map(function(p){ return {name:p, color:null, agg:profAgg[p]}; }).sort(function(a,b){ return b.agg.score - a.agg.score; });
 
@@ -372,7 +427,11 @@
     var serverTally = SERVER_TYPES.map(function(s){ return { name:s, count:serverAgg[s] }; }).sort(function(a,b){ return b.count-a.count; });
 
     var notesCount = entries.filter(function(e){ return e.notes && String(e.notes).trim(); }).length;
-    return { total: entries.length, topClass: topClass, topProf: topProf, reallyWantTotal: reallyWantTotal, notesCount: notesCount, classBars: classBars, profBars: profBars, factionTally: factionTally, serverTally: serverTally, roster: roster };
+    return {
+      total: entries.length, topClass: topClass, topProf: topProf, reallyWantTotal: reallyWantTotal, notesCount: notesCount,
+      classBars: classBars, profBars: profBars, factionTally: factionTally, serverTally: serverTally,
+      roleTally: roleTally, profCoverage: profCoverage, needsFollowUp: needsFollowUp, roster: roster
+    };
   }
   function dashboardHTML(entries, isAdmin, activeClassLevels, activeProfLevels){
     if(!configured()){
@@ -387,8 +446,13 @@
       +   '<div class="tally-block"><h2>Faction</h2>' + tallyHTML(stats.factionTally) + '</div>'
       +   '<div class="tally-block"><h2>Server type</h2>' + tallyHTML(stats.serverTally) + '</div>'
       + '</div>'
+      + (stats.roleTally.length
+          ? '<div class="demand-block"><h2>Role balance <span class="hint">(from picked specs, Interested or higher)</span></h2>' + tallyHTML(stats.roleTally) + '</div>'
+          : '')
+      + followUpHTML(stats.needsFollowUp)
       + '<div class="demand-block"><h2>Classes</h2>' + filterLegendHTML('class', activeClassLevels) + '<div class="bars">' + barsHTML(stats.classBars, activeClassLevels) + '</div></div>'
       + '<div class="demand-block"><h2>Professions</h2>' + filterLegendHTML('prof', activeProfLevels) + '<div class="bars">' + barsHTML(stats.profBars, activeProfLevels) + '</div></div>'
+      + '<div class="demand-block"><h2>Profession coverage <span class="hint">(main + secondary picks, lowest first)</span></h2>' + tallyHTML(stats.profCoverage) + '</div>'
       + '<div class="roster-block"><h2>Who&rsquo;s interested <span class="hint">(rated Interested or higher on something)</span></h2>'
       +   '<p class="legend-hint">Click a name to load their answers into the form and update them.</p>'
       +   rosterHTML(stats.roster, isAdmin) + '</div>';
