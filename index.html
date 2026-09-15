@@ -63,7 +63,14 @@
   .two-col{display:grid; grid-template-columns:1fr 1fr; gap:16px 20px;}
   @media (max-width:560px){ .two-col{grid-template-columns:1fr;} }
   .rate-section{margin:30px 0;}
-  .rate-section h2, .demand-block h2, .roster-block h2{font-size:19px; margin-bottom:8px;}
+  .rate-section h2, .demand-block h2, .roster-block h2, .tally-block h2{font-size:19px; margin-bottom:8px;}
+  .tally-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px 28px; margin-bottom:34px;}
+  @media (max-width:640px){ .tally-grid{grid-template-columns:1fr;} }
+  .tally-row{display:grid; grid-template-columns:96px 1fr 26px; align-items:center; gap:10px; margin-bottom:6px;}
+  .tally-label{font-size:13px;}
+  .tally-track{height:13px; background:var(--surface-2); border:1px solid var(--line-soft); border-radius:5px; overflow:hidden;}
+  .tally-fill{display:block; height:100%; border-radius:4px 0 0 4px;}
+  .tally-count{font-family:var(--font-mono); font-size:12px; color:var(--text-faint); text-align:right; font-variant-numeric:tabular-nums;}
   .legend{display:flex; flex-wrap:wrap; gap:12px 18px; font-family:var(--font-mono); font-size:11px; color:var(--text-faint); margin-bottom:14px; letter-spacing:.02em;}
   .legend-item{display:inline-flex; align-items:center; gap:6px;}
   button.legend-item{background:none; border:none; padding:0; font:inherit; letter-spacing:inherit; color:inherit; cursor:pointer; opacity:.4;}
@@ -160,6 +167,7 @@
   var PROFESSIONS = ["Alchemy","Blacksmithing","Enchanting","Engineering","Herbalism","Leatherworking","Mining","Skinning","Tailoring"];
   var RATINGS = [[1,"Not really"],[2,"Open to it"],[3,"Interested"],[4,"Really want it"]];
   var FACTIONS = ["Horde","Alliance","I don't care"];
+  var FACTION_COLORS = { "Horde":"#b23a2e", "Alliance":"#3b6fa0", "I don't care":"var(--text-faint)" };
   var SERVER_TYPES = ["PvE","PvP","RP","I don't care"];
   var SPECS = {
     Warrior: ["Arms","Fury","Protection"],
@@ -259,6 +267,21 @@
     var adminHeader = isAdmin ? '<th></th>' : '';
     return '<div class="table-wrap"><table><thead><tr><th>Name</th><th>Faction</th><th>Server</th><th>Classes</th><th>Professions</th><th>Main / Sec prof</th><th>Notes</th>'+adminHeader+'</tr></thead><tbody>'+rows+'</tbody></table></div>';
   }
+  function tallyHTML(items){
+    if(!items.some(function(i){ return i.count>0; })){
+      return '<p class="empty">No responses yet.</p>';
+    }
+    var max = Math.max.apply(null, items.map(function(i){ return i.count; }).concat([1]));
+    return items.map(function(i){
+      var w = max ? (i.count/max*100) : 0;
+      var color = i.color || 'var(--accent)';
+      return '<div class="tally-row">'
+        + '<span class="tally-label">'+esc(i.name)+'</span>'
+        + '<span class="tally-track"><span class="tally-fill" style="width:'+w+'%; background:'+color+';"></span></span>'
+        + '<span class="tally-count">'+i.count+'</span>'
+        + '</div>';
+    }).join('');
+  }
   function specTallyHTML(specVotes, activeLevels){
     var tally = {};
     specVotes.forEach(function(v){
@@ -338,8 +361,17 @@
     CLASSES.forEach(function(c){ reallyWantTotal += classAgg[c[0]][4]; });
     PROFESSIONS.forEach(function(p){ reallyWantTotal += profAgg[p][4]; });
 
+    var factionAgg = {}; FACTIONS.forEach(function(f){ factionAgg[f] = 0; });
+    var serverAgg = {}; SERVER_TYPES.forEach(function(s){ serverAgg[s] = 0; });
+    entries.forEach(function(e){
+      if(e.faction && factionAgg.hasOwnProperty(e.faction)) factionAgg[e.faction]++;
+      if(e.serverType && serverAgg.hasOwnProperty(e.serverType)) serverAgg[e.serverType]++;
+    });
+    var factionTally = FACTIONS.map(function(f){ return { name:f, count:factionAgg[f], color:FACTION_COLORS[f] }; }).sort(function(a,b){ return b.count-a.count; });
+    var serverTally = SERVER_TYPES.map(function(s){ return { name:s, count:serverAgg[s] }; }).sort(function(a,b){ return b.count-a.count; });
+
     var notesCount = entries.filter(function(e){ return e.notes && String(e.notes).trim(); }).length;
-    return { total: entries.length, topClass: topClass, topProf: topProf, reallyWantTotal: reallyWantTotal, notesCount: notesCount, classBars: classBars, profBars: profBars, roster: roster };
+    return { total: entries.length, topClass: topClass, topProf: topProf, reallyWantTotal: reallyWantTotal, notesCount: notesCount, classBars: classBars, profBars: profBars, factionTally: factionTally, serverTally: serverTally, roster: roster };
   }
   function dashboardHTML(entries, isAdmin, activeClassLevels, activeProfLevels){
     if(!configured()){
@@ -350,6 +382,10 @@
       return '<p class="empty">No responses yet. Be the first to give your interest.</p>';
     }
     return statsHTML(stats)
+      + '<div class="tally-grid">'
+      +   '<div class="tally-block"><h2>Faction</h2>' + tallyHTML(stats.factionTally) + '</div>'
+      +   '<div class="tally-block"><h2>Server type</h2>' + tallyHTML(stats.serverTally) + '</div>'
+      + '</div>'
       + '<div class="demand-block"><h2>Classes</h2>' + filterLegendHTML('class', activeClassLevels) + '<div class="bars">' + barsHTML(stats.classBars, activeClassLevels) + '</div></div>'
       + '<div class="demand-block"><h2>Professions</h2>' + filterLegendHTML('prof', activeProfLevels) + '<div class="bars">' + barsHTML(stats.profBars, activeProfLevels) + '</div></div>'
       + '<div class="roster-block"><h2>Who&rsquo;s interested <span class="hint">(rated Interested or higher on something)</span></h2>'
