@@ -226,7 +226,7 @@
   }
   function statsHTML(s){
     return '<div class="stat-tiles">'
-      + tileHTML('Total responses', s.total)
+      + tileHTML('"Really want it" votes', s.reallyWantTotal)
       + tileHTML('Top class', s.topClass)
       + tileHTML('Top profession', s.topProf)
       + tileHTML('Alts & notes logged', s.notesCount)
@@ -306,10 +306,24 @@
     });
     var classBars = CLASSES.map(function(c){ return {name:c[0], color:c[1], agg:classAgg[c[0]]}; }).sort(function(a,b){ return b.agg.score - a.agg.score; });
     var profBars = PROFESSIONS.map(function(p){ return {name:p, color:null, agg:profAgg[p]}; }).sort(function(a,b){ return b.agg.score - a.agg.score; });
-    var topClass = classBars.length && classBars[0].agg.score>0 ? classBars[0].name : '—';
-    var topProf = profBars.length && profBars[0].agg.score>0 ? profBars[0].name : '—';
+
+    var topClass = '—', topClassCount = 0;
+    CLASSES.forEach(function(c){
+      var v = classAgg[c[0]][4];
+      if(v > topClassCount){ topClassCount = v; topClass = c[0]; }
+    });
+    var topProf = '—', topProfCount = 0;
+    PROFESSIONS.forEach(function(p){
+      var v = profAgg[p][4];
+      if(v > topProfCount){ topProfCount = v; topProf = p; }
+    });
+
+    var reallyWantTotal = 0;
+    CLASSES.forEach(function(c){ reallyWantTotal += classAgg[c[0]][4]; });
+    PROFESSIONS.forEach(function(p){ reallyWantTotal += profAgg[p][4]; });
+
     var notesCount = entries.filter(function(e){ return e.notes && String(e.notes).trim(); }).length;
-    return { total: entries.length, topClass: topClass, topProf: topProf, notesCount: notesCount, classBars: classBars, profBars: profBars, roster: roster };
+    return { total: entries.length, topClass: topClass, topProf: topProf, reallyWantTotal: reallyWantTotal, notesCount: notesCount, classBars: classBars, profBars: profBars, roster: roster };
   }
   function dashboardHTML(entries, isAdmin, activeClassLevels, activeProfLevels){
     if(!configured()){
