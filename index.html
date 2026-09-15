@@ -285,8 +285,9 @@
   function specTallyHTML(specVotes, activeLevels){
     var tally = {};
     specVotes.forEach(function(v){
-      if(!activeLevels.has(v.level) || !v.spec) return;
-      tally[v.spec] = (tally[v.spec] || 0) + 1;
+      if(!activeLevels.has(v.level)) return;
+      var key = v.spec || 'Unspecified';
+      tally[key] = (tally[key] || 0) + 1;
     });
     var names = Object.keys(tally).sort(function(a,b){ return tally[b] - tally[a]; });
     if(!names.length) return '';
