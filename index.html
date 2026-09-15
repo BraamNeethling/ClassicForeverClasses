@@ -125,6 +125,8 @@
   .seg{height:100%; display:inline-block; border-right:2px solid var(--surface-2);}
   .seg.r1{background:var(--r1);} .seg.r2{background:var(--r2);} .seg.r3{background:var(--r3);} .seg.r4{background:var(--r4);}
   .bar-total{font-family:var(--font-mono); font-size:12.5px; color:var(--text-faint); text-align:right; font-variant-numeric:tabular-nums;}
+  .spec-tally{margin:2px 0 0 142px; font-size:11.5px; color:var(--text-faint); font-style:italic;}
+  @media (max-width:560px){ .spec-tally{margin-left:0;} }
   .empty{color:var(--text-faint); font-size:14px; font-style:italic; padding:10px 0;}
   .roster-block h2 .hint{font-family:var(--font-body); font-size:12.5px; font-weight:400; color:var(--text-faint);}
   .table-wrap{overflow-x:auto; border:1px solid var(--line); border-radius:10px;}
@@ -257,11 +259,21 @@
     var adminHeader = isAdmin ? '<th></th>' : '';
     return '<div class="table-wrap"><table><thead><tr><th>Name</th><th>Faction</th><th>Server</th><th>Classes</th><th>Professions</th><th>Main / Sec prof</th><th>Notes</th>'+adminHeader+'</tr></thead><tbody>'+rows+'</tbody></table></div>';
   }
+  function specTallyHTML(specVotes, activeLevels){
+    var tally = {};
+    specVotes.forEach(function(v){
+      if(!activeLevels.has(v.level) || !v.spec) return;
+      tally[v.spec] = (tally[v.spec] || 0) + 1;
+    });
+    var names = Object.keys(tally).sort(function(a,b){ return tally[b] - tally[a]; });
+    if(!names.length) return '';
+    return '<div class="spec-tally">' + names.map(function(s){ return esc(s)+' '+tally[s]; }).join(' &middot; ') + '</div>';
+  }
   function barsHTML(bars, activeLevels){
     var computed = bars.map(function(b){
       var total = 0, score = 0;
       activeLevels.forEach(function(v){ total += b.agg[v]; score += v*b.agg[v]; });
-      return { name:b.name, color:b.color, agg:b.agg, total:total, score:score };
+      return { name:b.name, color:b.color, agg:b.agg, total:total, score:score, specVotes:b.specVotes };
     }).sort(function(a,b){ return b.score - a.score; });
 
     if(!computed.some(function(b){ return b.total>0; })){
@@ -275,16 +287,19 @@
         var w = max ? (b.agg[v]/max*100) : 0;
         return b.agg[v] ? '<span class="seg r'+v+'" style="width:'+w+'%"></span>' : '';
       }).join('');
-      return '<div class="bar-row">'
-        + '<span class="bar-label">'+dot+esc(b.name)+'</span>'
-        + '<span class="bar-track">'+segs+'</span>'
-        + '<span class="bar-total">'+b.total+'</span>'
+      return '<div class="bar-item">'
+        + '<div class="bar-row">'
+        +   '<span class="bar-label">'+dot+esc(b.name)+'</span>'
+        +   '<span class="bar-track">'+segs+'</span>'
+        +   '<span class="bar-total">'+b.total+'</span>'
+        + '</div>'
+        + (b.specVotes ? specTallyHTML(b.specVotes, activeLevels) : '')
         + '</div>';
     }).join('');
   }
   function computeStats(entries){
-    var classAgg = {}, profAgg = {};
-    CLASSES.forEach(function(c){ classAgg[c[0]] = {1:0,2:0,3:0,4:0,score:0}; });
+    var classAgg = {}, profAgg = {}, classSpecs = {};
+    CLASSES.forEach(function(c){ classAgg[c[0]] = {1:0,2:0,3:0,4:0,score:0}; classSpecs[c[0]] = []; });
     PROFESSIONS.forEach(function(p){ profAgg[p] = {1:0,2:0,3:0,4:0,score:0}; });
     var roster = [];
     entries.forEach(function(e){
@@ -293,6 +308,7 @@
         var v = e.classes && e.classes[c[0]];
         if(v){
           classAgg[c[0]][v]++; classAgg[c[0]].score += v;
+          classSpecs[c[0]].push({ level:v, spec:(e.specs && e.specs[c[0]]) || '' });
           if(v>=3) rowClasses.push({ name:c[0], spec:(e.specs && e.specs[c[0]]) || '' });
         }
       });
@@ -304,7 +320,7 @@
         roster.push({ id:e.id, name:e.name, faction:e.faction, serverType:e.serverType, classes:rowClasses, profs:rowProfs, mainProf:e.mainProf, secProf:e.secProf, notes:e.notes });
       }
     });
-    var classBars = CLASSES.map(function(c){ return {name:c[0], color:c[1], agg:classAgg[c[0]]}; }).sort(function(a,b){ return b.agg.score - a.agg.score; });
+    var classBars = CLASSES.map(function(c){ return {name:c[0], color:c[1], agg:classAgg[c[0]], specVotes:classSpecs[c[0]]}; }).sort(function(a,b){ return b.agg.score - a.agg.score; });
     var profBars = PROFESSIONS.map(function(p){ return {name:p, color:null, agg:profAgg[p]}; }).sort(function(a,b){ return b.agg.score - a.agg.score; });
 
     var topClass = '—', topClassCount = 0;
